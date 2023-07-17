@@ -38,7 +38,7 @@ dim(data)
 data <- na.omit(data)
 dim(data)
 
-# women MUCH more likely to survive - 55.2 p.p. difference
+# women more likely to survive - 55.2 p.p. difference
 summary(lm(survived~male, data=data))
 data %>% group_by(male) %>% summarize(mean = mean(survived))
 
@@ -51,18 +51,18 @@ n <- nrow(x)
 # impute missing potential outcomes
 model <- glm(y ~ male + x, family='binomial', data=data)
 data$male <- 1 - data$male
-data$survived_cntrfctl <- as.integer(predict(model, type = 'response', newdata = data) >= .5)
+data$survived_cntrfctl <- as.integer(predict(model, type = 'response', newdata = data) >= .7)
 
 # calculate person-level treatment effect
 data$te <- ifelse(data$male == 1, 
                   data$survived - data$survived_cntrfctl,
                   data$survived_cntrfctl - data$survived)
+data %>% count(te)
 
 # clean up
 data <- data %>% 
   select(-c(male,survived,survived_cntrfctl)) %>%
   select(te, everything())
-
 
 # knockoffs
 x <- data[-1]
@@ -71,7 +71,7 @@ y <- data$te
 # run knockoffs algorithm
 result = knockoff.filter(x, 
                          y, 
-                         fdr = .001,
+                         fdr = .1,
                          statistic=stat.lasso_lambdasmax,
                          offset = 0)
 print(result$selected)
